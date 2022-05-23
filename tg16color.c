@@ -52,6 +52,9 @@ void yuv2rgb(double y, uint8_t cb, uint8_t cr, uint8_t *r, uint8_t *g, uint8_t *
 	// Y is 0 to 31
 	y = (y / 31.0);
 
+	// JCB 2022-04-12 - This is like turning down the brightness knob on the TV!
+	y = y * 0.85;
+
 	// Populate color coefficients to NTSC REC 601
 	struct color_coeff co = {0};
 	pop_rec_const(REC_601, &co);
@@ -113,7 +116,15 @@ int main (int *argc, char *argv)
 	for (int32_t x = 0; x < 512; x++) {
 		uint16_t index = ((index_lut[x][0] << 6) | (index_lut[x][1] << 3) | (index_lut[x][2])) & 0x1FF;
 		int8_t y, u, v;
-		yuv2rgb(pbpry_int_lut[x][2], pbpry_int_lut[x][0], pbpry_int_lut[x][1], &r, &g, &b);
+		if (x == 1) {
+//		if (0) {
+			// JCB 2022-04-12 - Maybe my IPS LCD screen is total junk, but the PC Engine's
+			// JCB 2022-04-12 - darkest-blue really isn't as dark as this math generates.
+			// JCB 2022-04-12 - This hack makes it look better without altering the ROM dump.
+			yuv2rgb(pbpry_int_lut[x][2] + 1, pbpry_int_lut[x][0], pbpry_int_lut[x][1], &r, &g, &b);
+		} else {
+			yuv2rgb(pbpry_int_lut[x][2], pbpry_int_lut[x][0], pbpry_int_lut[x][1], &r, &g, &b);
+		}
 		rgb_lut[index][0] = r;
 		rgb_lut[index][1] = g;
 		rgb_lut[index][2] = b;
@@ -167,6 +178,20 @@ int main (int *argc, char *argv)
 		rgb[0] = rgb_lut[x][0];
 		rgb[1] = rgb_lut[x][1];
 		rgb[2] = rgb_lut[x][2];
+		fwrite(rgb, 1, 3 * sizeof(uint8_t), f);
+	}
+	fclose(f);
+
+	// Mednafen Palette from Hudson's "Character Editor" tool
+	f = fopen("hce.pal", "wb");
+	for (int32_t x = 0; x < 512; x++) {
+		static uint8_t aPCE[8] = {0,34,68,102,136,170,187,204};
+		uint8_t rgb[3] = {0,0,0};
+
+		rgb[0] = aPCE[ (x >> 3) & 7 ];
+		rgb[1] = aPCE[ (x >> 6) & 7 ];
+		rgb[2] = aPCE[ (x >> 0) & 7 ];
+
 		fwrite(rgb, 1, 3 * sizeof(uint8_t), f);
 	}
 	fclose(f);
