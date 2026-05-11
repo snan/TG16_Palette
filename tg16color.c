@@ -170,4 +170,13 @@ int main (int *argc, char *argv)
 		fwrite(rgb, 1, 3 * sizeof(uint8_t), f);
 	}
 	fclose(f);
+
+	// GIMP/Inkscape Palette
+	f = fopen("palette.gpl", "wb");
+	fprintf(f, "GIMP Palette\nName: TG16\nColumns: 8\n");
+	for (int32_t x = 0; x < 512; x++) {
+		fprintf(f, "%d %d %d\n",
+			rgb_lut[x][0], rgb_lut[x][1], rgb_lut[x][2]);
+	}
+	fclose(f);
 }
